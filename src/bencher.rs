@@ -29,6 +29,7 @@ pub fn run(file_path: &str) {
                 let sol = solver.solve(pos);
                 let elapsed: Duration = before.elapsed();
                 println!("{s}, sol: {sol}, score: {num} nb: {}, time: {:.2?}",solver.node_count,elapsed);
+                assert_eq!(sol,num);
                 (solver.node_count,elapsed)
             })
             .fold((0,0,Duration::ZERO),|acc, (nb,dur)| (acc.0 + 1, acc.1 + nb,acc.2 + dur));
@@ -37,7 +38,7 @@ pub fn run(file_path: &str) {
             res.0,
             res.1 as f64 / res.0 as f64,
             res.2 / res.0,
-            res.1/ 1000 / res.2.as_secs(),
+            res.1 as u128/ res.2.as_millis(),
         );
         println!("\ncount: {}, mean nb pos: {}, mean time: {:.2?}, K pos / s: {}",
             res.0, res.1, res.2, res.3);
