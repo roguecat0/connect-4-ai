@@ -68,20 +68,38 @@ impl Position {
     }
 
     fn is_winning_move(&self, col: usize) -> bool {
-        let current_player = 1 + self.moves % 2;
         let vertical = || self.board[col][..self.height[col]].iter().rev().take_while(|&&num| {num == self.current_player}).count() == 3;
-        // println!("player: {current_player}, column: {col}");
-        let front: Vec<(usize,&[usize;Position::HEIGHT])> = self.board[..col].iter().rev().enumerate().collect();
-        let back: Vec<(usize,&[usize;Position::HEIGHT])>  = self.board[col..].iter().skip(1).enumerate().collect();
-        let horizontal = || front.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,0)).count()
-        + back.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,0)).count();
-        let diagonal1 = || front.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,1)).count()
-        + back.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,-1)).count();
-        let diagonal2 = || front.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,-1)).count()
-        + back.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,1)).count();
-        // println!("{self}");
-        // println!("hor: {horizontal:?}, dia1 {diagonal1:?}, dia2 {diagonal2:?}");
-        vertical() || horizontal() > 2 || diagonal1() > 2 || diagonal2() > 2
+        // println!("player: {}, column: {col}",self.current_player);
+        // let front: Vec<(usize,&[usize;Position::HEIGHT])> = self.board[..col].iter().rev().enumerate().collect();
+        // let back: Vec<(usize,&[usize;Position::HEIGHT])>  = self.board[col..].iter().skip(1).enumerate().collect();
+        // let horizontal = || front.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,0)).count()
+        // + back.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,0)).count();
+        // let diagonal1 = || front.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,1)).count()
+        // + back.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,-1)).count();
+        // let diagonal2 = || front.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,-1)).count()
+        // + back.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,1)).count();
+        // // println!("{self}");
+        // // println!("hor: {horizontal:?}, dia1 {diagonal1:?}, dia2 {diagonal2:?}");
+        // vertical() || horizontal() > 2 || diagonal1() > 2 || diagonal2() > 2
+        
+        if vertical() {
+            return true;
+        }
+        for dy in -1..=1 {
+            let mut nb = 0;
+            for dx in (-1..=1).step_by(2) {
+                let (mut x, mut y) = (col as isize + dx, self.height[col] as isize + dx*dy);
+                while x >= 0 && x < Position::WIDTH as isize 
+                    && y >= 0 && y < Position::HEIGHT as isize 
+                    && self.board[x as usize][y as usize] == self.current_player {
+                        x += dx;
+                        y += dx*dy;
+                        nb += 1;
+                }
+            }
+            if nb >= 3 { return true}
+        }
+        false
     }
     fn has_winning_move(&self) -> bool {
         (0..Position::WIDTH)
@@ -133,9 +151,13 @@ mod tests {
         let mut solver = Solver::new();
 
         let pos = Position::parse("23163416124767223154467471272416755633");
+        println!("test1");
         println!("{pos}");
+        println!("winning move: {}, moves: {}, score: {}"
+            ,pos.has_winning_move(), pos.moves, pos.calc_score());
         assert_eq!(0 ,solver.solve(pos));
 
+        println!("test1");
         let pos = Position::parse("65214673556155731566316327373221417");
         println!("{pos}");
         assert_eq!(-1 ,solver.solve(pos));
