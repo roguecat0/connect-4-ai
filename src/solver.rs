@@ -6,12 +6,28 @@ pub fn print_something() {
 
 pub struct Solver {
     pub node_count: u64,
+    column_order: [usize;Position::WIDTH],
+    strategy: SolveStrat
+}
+pub enum SolveStrat {
+    Naive,
+    AlphaBeta,
+    Weak,
 }
 
 impl Solver {
     pub fn new() -> Self {
         Self {
-            node_count: 0
+            node_count: 0,
+            column_order: [3, 2, 4, 1, 5, 0, 6],
+            strategy: SolveStrat::AlphaBeta,
+        }
+    }
+    pub fn with_strategy(strategy: SolveStrat) -> Self {
+        Self {
+            node_count: 0,
+            column_order: [3, 2, 4, 1, 5, 0, 6],
+            strategy,
         }
     }
     fn negamax(&mut self, pos: Position) -> isize {
@@ -41,7 +57,7 @@ impl Solver {
             if alpha >= beta {
                 beta
             } else {
-                for c in (0..Position::WIDTH).filter(|&c| pos.can_play(c)) {
+                for c in self.column_order.into_iter().filter(|&c| pos.can_play(c)) {
                     let score = -self.negamax_alpha_beta(pos.next_pos(c),-beta,-alpha);
                     if score >= beta {return score}
                     if score > alpha {alpha = score}
@@ -53,6 +69,15 @@ impl Solver {
 
     pub fn solve(&mut self, pos: Position) -> isize {
         self.node_count = 0;
-        self.negamax_alpha_beta(pos, -((Position::HEIGHT*Position::WIDTH) as isize), (Position::HEIGHT*Position::WIDTH) as isize)
+        match self.strategy {
+            SolveStrat::Weak => self.negamax_alpha_beta(pos, -1, 1),
+            SolveStrat::Naive => self.negamax(pos),
+            SolveStrat::AlphaBeta => self.negamax_alpha_beta(pos, 
+                -((Position::HEIGHT*Position::WIDTH) as isize), 
+                (Position::HEIGHT*Position::WIDTH) as isize)
+        }
+
+        
+            
     }
 }
