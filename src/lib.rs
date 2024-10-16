@@ -6,20 +6,19 @@ pub mod bencher;
 #[derive(Clone,Debug)]
 struct Position {
     moves: usize,
-    board: [[usize;Position::HEIGHT];Position::WIDTH],
-    height: [usize;Position::WIDTH],
-    current_player: usize,
+    current_position: u64,
+    mask: u64,
 }
 impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let str: String = (0..Position::HEIGHT)
-            .rev().map(|r| {
-            (0..Position::WIDTH)
-                .map(|c| format!("{:?}, ",self.board[c][r]))
-                .collect::<String>() + "\n"
-        })
-        .collect();
-        write!(f,"player: {}\nboard:\n{}",self.current_player,str)
+        // let str: String = (0..Position::HEIGHT)
+        //     .rev().map(|r| {
+        //     (0..Position::WIDTH)
+        //         .map(|c| format!("{:?}, ",self.board[c][r]))
+        //         .collect::<String>() + "\n"
+        // })
+        // .collect();
+        write!(f,"player: {}\nboard:\n{}",self.get_current_player(),self.mask)
     }
 }
 
@@ -30,9 +29,8 @@ impl Position {
     fn new() -> Self {
         Self {
             moves: 0,
-            height:[0;Position::WIDTH],
-            board:[[0;Position::HEIGHT];Position::WIDTH],
-            current_player: 1
+            current_position: 0,
+            mask: 0,
         }
     }
     fn parse(code: &str) -> Self {
@@ -49,82 +47,76 @@ impl Position {
         })
     }
     fn can_play(&self, col: usize) -> bool {
-        col < Self::WIDTH && self.height[col] < Self::HEIGHT
+        self.mask & Position::top_mask(col) == 0
     }
 
     fn next_pos(&self, col: usize) -> Self {
-        let mut height: [usize;Position::WIDTH] = self.height.clone();
-        let mut board = self.board.clone();
         let moves = self.moves + 1;
-        board[col][height[col]] = 1 + self.moves % 2;
-        height[col] += 1;
+        let current_position = self.mask ^ self.current_position;
+        let mask = self.mask | (self.mask + Position::bottom_mask(col));
 
         Self {
             moves,
-            height,
-            board,
-            current_player: 1 + moves % 2
+            current_position,
+            mask,
+
         }
     }
+    fn get_current_player(&self) -> usize {
+        1 + self.moves % 2
+    }
 
+    fn alignment(pos: u64) -> bool {
+        let horizontal = |pos| {
+            let m = pos & (pos >> (Position::HEIGHT + 1));
+            m & ( m >> ( 2 * (Position::HEIGHT+ 1 ))) != 0
+        };
+        let diagonal1 = |pos| {
+            let m = pos & (pos >> Position::HEIGHT);
+            m & ( m >> ( 2 * Position::HEIGHT)) != 0
+        };
+        let diagonal2 = |pos| {
+            let m = pos & (pos >> (Position::HEIGHT + 2));
+            m & ( m >> ( 2 * (Position::HEIGHT+ 2 ))) != 0
+        };
+        let vertical = |pos| {
+            let m: u64 = pos & (pos >> 1);
+            m & ( m >> 2) != 0
+        };
+        horizontal(pos) || diagonal1(pos) || diagonal2(pos) || vertical(pos)
+
+    }
     fn is_winning_move(&self, col: usize) -> bool {
-        let vertical = || self.board[col][..self.height[col]].iter().rev().take_while(|&&num| {num == self.current_player}).count() == 3;
-        // println!("player: {}, column: {col}",self.current_player);
-        // let front: Vec<(usize,&[usize;Position::HEIGHT])> = self.board[..col].iter().rev().enumerate().collect();
-        // let back: Vec<(usize,&[usize;Position::HEIGHT])>  = self.board[col..].iter().skip(1).enumerate().collect();
-        // let horizontal = || front.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,0)).count()
-        // + back.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,0)).count();
-        // let diagonal1 = || front.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,1)).count()
-        // + back.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,-1)).count();
-        // let diagonal2 = || front.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,-1)).count()
-        // + back.iter().map_while(|(i,c)| self.is_pos_curr_player(*i,c,col,1)).count();
-        // // println!("{self}");
-        // // println!("hor: {horizontal:?}, dia1 {diagonal1:?}, dia2 {diagonal2:?}");
-        // vertical() || horizontal() > 2 || diagonal1() > 2 || diagonal2() > 2
-        
-        if vertical() {
-            return true;
-        }
-        for dy in -1..=1 {
-            let mut nb = 0;
-            for dx in (-1..=1).step_by(2) {
-                let (mut x, mut y) = (col as isize + dx, self.height[col] as isize + dx*dy);
-                while x >= 0 && x < Position::WIDTH as isize 
-                    && y >= 0 && y < Position::HEIGHT as isize 
-                    && self.board[x as usize][y as usize] == self.current_player {
-                        x += dx;
-                        y += dx*dy;
-                        nb += 1;
-                }
-            }
-            if nb >= 3 { return true}
-        }
-        false
+        let pos: u64 = self.current_position 
+            | (self.mask + Position::bottom_mask(col)) 
+            & Position::column_mask(col);
+        Position::alignment(pos)
     }
     fn has_winning_move(&self) -> bool {
         (0..Position::WIDTH)
             .filter(|&c| self.can_play(c))
             .fold(false, |acc, c| {self.is_winning_move(c) || acc })
     }
-
-    fn is_pos_curr_player(&self, i: usize, column: &[usize; Position::HEIGHT], col: usize, dy: isize) -> Option<usize> {
-        // println!("{column:?} col: {col}, i: {i}, dy: {dy}, formula: {}", self.height[col] as isize + (i as isize+1) * dy);
-        match self.height[col] as isize + (i as isize+1) * dy {
-            n if n < 0 => None,
-            n if n as usize >= Position::HEIGHT => None,
-            n => (column[n as usize] == self.current_player).then_some(self.current_player)
-        }
-    }
-
     fn all_moves_played(&self) -> bool {
         self.moves == Position::WIDTH*Position::HEIGHT
     }
     fn calc_score(&self) -> isize {
-        ((Position::WIDTH*Position::HEIGHT+1) as isize - self.moves as isize)/2
+        ((Position::WIDTH*Position::HEIGHT + 1) as isize - self.moves as isize)/2
+    }
+    // mask functions
+    fn top_mask(col: usize) -> u64 {
+        (1_u64 << (Position::HEIGHT - 1)) << col * (Position::HEIGHT + 1)
+    }
+    fn bottom_mask(col: usize) -> u64 {
+        1_u64 << col * (Position::HEIGHT + 1)
+    }
+    fn column_mask(col: usize) -> u64 {
+        ((1_u64 << Position::HEIGHT) - 1) << col * (Position::HEIGHT + 1)
     }
 
 
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;

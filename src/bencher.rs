@@ -16,6 +16,7 @@ pub fn run(file_path: &str) {
     let mut solver = Solver::with_strategy(SolveStrat::AlphaBeta);
 
     if let Ok(s) = read_file_to_string(file_path) {
+        let num_lines = s.lines().count();
         let res = s.lines()
             .flat_map(|line| {
                 let vars = line.split_whitespace().collect::<Vec<_>>();
@@ -24,13 +25,15 @@ pub fn run(file_path: &str) {
                     .and_then(|numstr| numstr.parse().ok())
                     .map(|num: isize| (vars[0],num))
             })
-            .map(|(s,num)| {
+            .enumerate()
+            .map(|(i,(s,num))| {
                 let pos = Position::parse(s);
                 let before = Instant::now();
                 let sol = solver.solve(pos);
                 let elapsed: Duration = before.elapsed();
-                println!("{s}, sol: {sol}, score: {num} nb: {}, time: {:.2?}",solver.node_count,elapsed);
-                // assert_eq!(sol,num);
+                // println!("{s}, sol: {sol}, score: {num} nb: {}, time: {:.2?}",solver.node_count,elapsed);
+                print!("progress... {:.2}%\r", i as f64/num_lines as f64 * 100.0);
+                assert_eq!(sol,num);
                 (solver.node_count,elapsed)
             })
             .fold((0,0,Duration::ZERO),|acc, (nb,dur)| (acc.0 + 1, acc.1 + nb,acc.2 + dur));
