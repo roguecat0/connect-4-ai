@@ -1,6 +1,11 @@
 use connect_4_ai::bencher;
+use connect_4_ai::solver::SolveStrat;
+// use connect_4_ai::{TranspositionTable,Entry, Position};
 
 fn main() {
-    bencher::run("datasets/Test_L2_R1");
-    // println!("output: {:?}",(0..7).map(|i| 7/2 + (1-2*(i%2))*(i+1)/2).collect::<Vec<_>>());
+    bencher::run(
+        "datasets/Test_L3_R1", 
+        SolveStrat::Transposition,
+        false,
+    );
 }

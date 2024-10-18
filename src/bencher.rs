@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::Error as IOError;
 use std::time::{Instant, Duration};
+use solver::{Solver,SolveStrat};
 
 fn read_file_to_string(file_path: &str) -> Result<String,IOError> {
     let mut s: String = String::new();
@@ -11,9 +12,9 @@ fn read_file_to_string(file_path: &str) -> Result<String,IOError> {
     Ok(s)
 }
 
-pub fn run(file_path: &str) {
-    use solver::{Solver,SolveStrat};
-    let mut solver = Solver::with_strategy(SolveStrat::AlphaBeta);
+pub fn run(file_path: &str, strategy: SolveStrat, weak: bool) {
+
+    let mut solver = Solver::with_strategy(strategy);
 
     if let Ok(s) = read_file_to_string(file_path) {
         let num_lines = s.lines().count();
@@ -28,16 +29,15 @@ pub fn run(file_path: &str) {
             .enumerate()
             .map(|(i,(s,num))| {
                 let pos = Position::parse(s);
+                solver.reset();
                 let before = Instant::now();
-                let sol = solver.solve(pos);
+                let sol = solver.solve(pos, weak);
                 let elapsed: Duration = before.elapsed();
-                // println!("{s}, sol: {sol}, score: {num} nb: {}, time: {:.2?}",solver.node_count,elapsed);
-                print!("progress... {:.2}%\r", i as f64/num_lines as f64 * 100.0);
+                print!("progress... {:.2}%          \r", i as f64/num_lines as f64 * 100.0);
                 assert_eq!(sol,num);
                 (solver.node_count,elapsed)
             })
             .fold((0,0,Duration::ZERO),|acc, (nb,dur)| (acc.0 + 1, acc.1 + nb,acc.2 + dur));
-            // .collect::<Vec<_>>();
         let res = (
             res.0,
             res.1 as f64 / res.0 as f64,
