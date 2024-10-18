@@ -15,6 +15,7 @@ pub enum SolveStrat {
     AlphaBeta,
     Weak,
     Transposition,
+    IterativeDeepening,
 }
 
 impl Solver {
@@ -107,6 +108,24 @@ impl Solver {
         }
     }
 
+    fn iterative_deepening(&mut self,pos: Position, weak: bool) -> isize {
+        let (mut min, mut max) = if !weak {
+            (
+                -((Position::WIDTH*Position::HEIGHT - pos.moves) as isize)/2,
+                ((Position::WIDTH*Position::HEIGHT+1 - pos.moves)/2) as isize,
+            )
+        } else { (-1,1) };
+        while min < max {
+            let med = match min + (max - min) / 2 {
+                med if med <= 0 && min/2 < med => min/2,
+                med if med >= 0 && max/2 > med => max/2,
+                med => med
+            };
+            let r = self.negamax_transposition(pos.clone(),med,med+1);
+            if r <= med { max = r } else { min = r };
+        }
+        min
+    }
 
     pub fn solve(&mut self, pos: Position, weak: bool) -> isize {
         match self.strategy {
@@ -118,7 +137,7 @@ impl Solver {
             SolveStrat::Transposition => self.negamax_transposition(pos, 
                 -((Position::HEIGHT*Position::WIDTH) as isize), 
                 (Position::HEIGHT*Position::WIDTH) as isize),
-
+            SolveStrat::IterativeDeepening => self.iterative_deepening(pos,weak),
         }
     }
 }

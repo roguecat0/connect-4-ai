@@ -229,4 +229,9 @@ mod tests {
         let solver = Solver::with_strategy(solver::SolveStrat::Transposition);
         test_solver(solver);
     }
+    #[test]
+    fn test_solver_iterative_deepening() {
+        let solver = Solver::with_strategy(solver::SolveStrat::IterativeDeepening);
+        test_solver(solver);
+    }
 }

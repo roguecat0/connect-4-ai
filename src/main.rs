@@ -4,8 +4,8 @@ use connect_4_ai::solver::SolveStrat;
 
 fn main() {
     bencher::run(
-        "datasets/Test_L3_R1", 
-        SolveStrat::Transposition,
+        "datasets/Test_L2_R1", 
+        SolveStrat::IterativeDeepening,
         false,
     );
 }
