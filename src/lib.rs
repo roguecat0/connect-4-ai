@@ -41,13 +41,27 @@ impl Position {
             }
         })
     }
+    pub fn key(&self) -> u64 {
+        self.current_position + self.mask
+    }
+    pub fn possible_non_loosing_moves(&self) -> u64 {
+        assert!(!self.has_winning_move());
+        let possible_mask = self.possible();
+        let opponent_win = self.opponent_winning_position();
+        let forced_moves = possible_mask & opponent_win;
+
+        match forced_moves {
+            n if n == 0 => possible_mask & !(opponent_win >> 1),
+            n if n & ( n - 1 ) > 0 => 0,
+            _ => forced_moves & !(opponent_win >> 1),
+        }
+
+    }
+
     fn can_play(&self, col: usize) -> bool {
         self.mask & Self::top_mask(col) == 0
     }
 
-    pub fn key(&self) -> u64 {
-        self.current_position + self.mask
-    }
 
     fn next_pos(&self, col: usize) -> Self {
         let moves = self.moves + 1;
@@ -64,51 +78,85 @@ impl Position {
         1 + self.moves % 2
     }
 
-    fn alignment(pos: u64) -> bool {
-        let horizontal = |pos| {
-            let m = pos & (pos >> (Self::HEIGHT + 1));
-            m & ( m >> ( 2 * (Self::HEIGHT+ 1 ))) != 0
-        };
-        let diagonal1 = |pos| {
-            let m = pos & (pos >> Self::HEIGHT);
-            m & ( m >> ( 2 * Self::HEIGHT)) != 0
-        };
-        let diagonal2 = |pos| {
-            let m = pos & (pos >> (Self::HEIGHT + 2));
-            m & ( m >> ( 2 * (Self::HEIGHT+ 2 ))) != 0
-        };
-        let vertical = |pos| {
-            let m: u64 = pos & (pos >> 1);
-            m & ( m >> 2) != 0
-        };
-        horizontal(pos) || diagonal1(pos) || diagonal2(pos) || vertical(pos)
-    }
-    fn is_winning_move(&self, col: usize) -> bool {
-        let pos: u64 = self.current_position 
-            | (self.mask + Self::bottom_mask(col)) 
-            & Self::column_mask(col);
-        Self::alignment(pos)
-    }
     fn has_winning_move(&self) -> bool {
-        (0..Self::WIDTH)
-            .filter(|&c| self.can_play(c))
-            .fold(false, |acc, c| {self.is_winning_move(c) || acc })
+        (self.winning_position() & self.possible()) != 0
     }
-    fn all_moves_played(&self) -> bool {
-        self.moves == Self::WIDTH*Self::HEIGHT
+    // check after winning move check
+    fn is_draw(&self) -> bool {
+        self.moves == Self::WIDTH*Self::HEIGHT - 2
     }
     fn calc_score(&self) -> isize {
-        ((Self::WIDTH*Self::HEIGHT + 1) as isize - self.moves as isize)/2
+        ((Self::WIDTH*Self::HEIGHT) as isize - self.moves as isize)/2
     }
+    fn is_winning_move(&self, col: usize) -> bool {
+        self.winning_position() 
+        & self.possible() 
+        & Self::column_mask(col)
+        != 0
+    }
+    fn possible(&self) -> u64 {
+        let res = (self.mask + Self::BOTTOM_MASK) & Self::BOARD_MASK;
+        (self.mask + Self::BOTTOM_MASK) & Self::BOARD_MASK
+    }
+    fn winning_position(&self) -> u64 {
+        Self::compute_winning_position(self.current_position, self.mask)
+    }
+    fn opponent_winning_position(&self) -> u64 {
+        Self::compute_winning_position(self.current_position ^ self.mask, self.mask)
+    }
+    fn compute_winning_position(position: u64, mask: u64) -> u64 {
+
+        // vertical
+        let mut r = (position << 1) & (position << 2) & (position << 3);
+
+        // horizontal
+        let mut p = (position << (Self::HEIGHT + 1)) & (position << 2*(Self::HEIGHT + 1));
+        r |= p & (position << 3*(Self::HEIGHT+1));
+        r |= p & (position >> (Self::HEIGHT+1));
+        p = (position >> (Self::HEIGHT+1)) & (position >> 2*(Self::HEIGHT+1));
+        r |= p & (position << (Self::HEIGHT+1));
+        r |= p & (position >> 3*(Self::HEIGHT+1));
+
+        //diagonal 1
+        p = (position << Self::HEIGHT) & (position << 2*Self::HEIGHT);
+        r |= p & (position << 3*Self::HEIGHT);
+        r |= p & (position >> Self::HEIGHT);
+        p = (position >> Self::HEIGHT) & (position >> 2*Self::HEIGHT);
+        r |= p & (position << Self::HEIGHT);
+        r |= p & (position >> 3*Self::HEIGHT);
+
+        //diagonal 2
+        p = (position << (Self::HEIGHT+2)) & (position << 2*(Self::HEIGHT+2));
+        r |= p & (position << 3*(Self::HEIGHT+2));
+        r |= p & (position >> (Self::HEIGHT+2));
+        p = (position >> (Self::HEIGHT+2)) & (position >> 2*(Self::HEIGHT+2));
+        r |= p & (position << (Self::HEIGHT+2));
+        r |= p & (position >> 3*(Self::HEIGHT+2));
+        
+        r & (Self::BOARD_MASK ^ mask)
+    }
+    // static bitmaps
+    const BOTTOM_MASK: u64 = 4432676798593; //Self::bottom(Self::WIDTH as u64, Self::HEIGHT as u64);
+    const BOARD_MASK: u64 = Self::BOTTOM_MASK * ((1_u64 << Self::HEIGHT) - 1);
+
     // mask functions
     fn top_mask(col: usize) -> u64 {
-        (1_u64 << (Self::HEIGHT - 1)) << col * (Self::HEIGHT + 1)
+        1_u64 << ((Self::HEIGHT - 1) + col*(Self::HEIGHT+1))
     }
     fn bottom_mask(col: usize) -> u64 {
         1_u64 << col * (Self::HEIGHT + 1)
     }
-    fn column_mask(col: usize) -> u64 {
+
+    pub fn column_mask(col: usize) -> u64 {
         ((1_u64 << Self::HEIGHT) - 1) << col * (Self::HEIGHT + 1)
+    }
+
+    // broken function /*TODO*/
+    const fn bottom(height: u64, width: u64) -> u64 {
+        match width {
+            0 => 0,
+            _ => Self::bottom(width-1,height) | 1_u64 << (width-1)*(height+1)
+        }
     }
 }
 
@@ -201,6 +249,8 @@ mod tests {
     #[test]
     fn test_has_winning_move() {
         let pos2 = Position::parse("112233");
+        // let pos2 = Position::parse("121212");
+        println!("\n##IGNORE##");
         assert_eq!(true, pos2.has_winning_move());
     }
     fn test_solver(mut solver: Solver) {
