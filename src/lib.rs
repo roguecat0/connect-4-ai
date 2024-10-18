@@ -82,7 +82,6 @@ impl Position {
             m & ( m >> 2) != 0
         };
         horizontal(pos) || diagonal1(pos) || diagonal2(pos) || vertical(pos)
-
     }
     fn is_winning_move(&self, col: usize) -> bool {
         let pos: u64 = self.current_position 
@@ -220,18 +219,8 @@ mod tests {
         assert_eq!(0 ,solver.solve(pos,false));
     }
     #[test]
-    fn test_solver_alpha_beta() {
-        let solver = Solver::with_strategy(solver::SolveStrat::AlphaBeta);
-        test_solver(solver);
-    }
-    #[test]
-    fn test_solver_transposition() {
-        let solver = Solver::with_strategy(solver::SolveStrat::Transposition);
-        test_solver(solver);
-    }
-    #[test]
     fn test_solver_iterative_deepening() {
-        let solver = Solver::with_strategy(solver::SolveStrat::IterativeDeepening);
+        let solver = Solver::new();
         test_solver(solver);
     }
 }

@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::io::Error as IOError;
 use std::time::{Instant, Duration};
-use solver::{Solver,SolveStrat};
+use solver::Solver;
 
 fn read_file_to_string(file_path: &str) -> Result<String,IOError> {
     let mut s: String = String::new();
@@ -12,9 +12,9 @@ fn read_file_to_string(file_path: &str) -> Result<String,IOError> {
     Ok(s)
 }
 
-pub fn run(file_path: &str, strategy: SolveStrat, weak: bool) {
+pub fn run(file_path: &str, weak: bool) {
 
-    let mut solver = Solver::with_strategy(strategy);
+    let mut solver = Solver::new();
 
     if let Ok(s) = read_file_to_string(file_path) {
         let num_lines = s.lines().count();
