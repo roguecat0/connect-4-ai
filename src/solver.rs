@@ -1,4 +1,5 @@
 use super::*;
+use crate::position::{Position,TranspositionTable, MoveSorter};
 
 pub struct Solver {
     pub node_count: u64,
@@ -10,7 +11,7 @@ impl Solver {
     pub fn new() -> Self {
         Self {
             node_count: 0,
-            column_order: [3, 2, 4, 1, 5, 0, 6],
+            column_order: [3, 4, 2, 5, 1, 6, 0],
             table: TranspositionTable::new()
         }
     }
@@ -38,16 +39,27 @@ impl Solver {
             -pos.calc_score()
         } else if pos.is_draw() {
             0
-        } else if pos.has_winning_move() {
-                pos.calc_score()
         } else if alpha >= beta {
                 beta
         } else {
-            for p2 in self.column_order
-                    .into_iter()
-                    .filter(|&c| next & Position::column_mask(c) != 0)
-                    .map(|c| pos.next_pos(c)) {
+            let mut moves = MoveSorter::new();
+            self.column_order
+                .into_iter()
+                .flat_map(|c| {
+                    match next & Position::column_mask(c) {
+                        0 => None,
+                        n => Some(n),
+                    }
+                })
+                .for_each(|m| moves.add(m, pos.move_score(m)));
 
+            // for p2 in self.column_order
+            //         .into_iter()
+            //         .filter(|&c| next & Position::column_mask(c) != 0)
+            //         .map(|c| pos.next_pos(c)) {
+
+            while let Some(m) = moves.get_next() {
+                let p2 = pos.next_pos_move(m);
                 let score = -self.negamax(p2,-beta,-alpha);
 
                 if score >= beta { return score }

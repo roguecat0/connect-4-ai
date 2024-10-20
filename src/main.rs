@@ -3,7 +3,7 @@ use connect_4_ai::bencher;
 
 fn main() {
     bencher::run(
-        "datasets/Test_L1_R1", 
-        false,
+        "datasets/Test_L3_R1", 
+        true,
     );
 }
