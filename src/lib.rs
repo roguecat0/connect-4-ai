@@ -1,4 +1,5 @@
 pub use position::Position;
+pub use position::MoveSorter;
 
 pub mod solver;
 pub mod bencher;

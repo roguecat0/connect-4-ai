@@ -11,7 +11,7 @@ impl Solver {
     pub fn new() -> Self {
         Self {
             node_count: 0,
-            column_order: [3, 4, 2, 5, 1, 6, 0],
+            column_order: [3, 2, 4, 1, 5, 0, 6],
             table: TranspositionTable::new()
         }
     }
@@ -45,6 +45,7 @@ impl Solver {
             let mut moves = MoveSorter::new();
             self.column_order
                 .into_iter()
+                .rev()
                 .flat_map(|c| {
                     match next & Position::column_mask(c) {
                         0 => None,
