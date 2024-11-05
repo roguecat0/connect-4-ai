@@ -1,10 +1,11 @@
 use super::*;
-use crate::position::{Position,TranspositionTable, MoveSorter};
+use crate::position::{MoveSorter, Position};
+use crate::{NaiveTranspositionTable, TranspositionTable};
 
 pub struct Solver {
     pub node_count: u64,
-    column_order: [usize;Position::WIDTH],
-    table: TranspositionTable,
+    column_order: [usize; Position::WIDTH],
+    table: Box<dyn TranspositionTable>,
 }
 
 impl Solver {
@@ -12,7 +13,7 @@ impl Solver {
         Self {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
-            table: TranspositionTable::new()
+            table: Box::new(NaiveTranspositionTable::new()),
         }
     }
     pub fn reset(&mut self) {
@@ -24,15 +25,16 @@ impl Solver {
         assert!(alpha < beta);
         assert!(!pos.has_winning_move());
         self.node_count += 1;
-        
-        let max: isize = match self.table.get(pos.key()) {
-            0 => {((Position::HEIGHT*Position::WIDTH) as isize-1-(pos.moves as isize))/2},
-            score => { score as isize + Position::MIN_SCORE - 1},
-        };
-        let min: isize = -((Position::HEIGHT*Position::WIDTH) as isize - 2 - (pos.moves as isize))/2;
 
-        alpha = std::cmp::max(alpha,min);
-        beta = std::cmp::min(beta,max);
+        let max: isize = match self.table.get(pos.key()) {
+            0 => ((Position::HEIGHT * Position::WIDTH) as isize - 1 - (pos.moves as isize)) / 2,
+            score => score as isize + Position::MIN_SCORE - 1,
+        };
+        let min: isize =
+            -((Position::HEIGHT * Position::WIDTH) as isize - 2 - (pos.moves as isize)) / 2;
+
+        alpha = std::cmp::max(alpha, min);
+        beta = std::cmp::min(beta, max);
         let next = pos.possible_non_loosing_moves();
 
         if next == 0 {
@@ -40,17 +42,15 @@ impl Solver {
         } else if pos.is_draw() {
             0
         } else if alpha >= beta {
-                beta
+            beta
         } else {
             let mut moves = MoveSorter::new();
             self.column_order
                 .into_iter()
                 .rev()
-                .flat_map(|c| {
-                    match next & Position::column_mask(c) {
-                        0 => None,
-                        n => Some(n),
-                    }
+                .flat_map(|c| match next & Position::column_mask(c) {
+                    0 => None,
+                    n => Some(n),
                 })
                 .for_each(|m| moves.add(m, pos.move_score(m)));
 
@@ -61,24 +61,33 @@ impl Solver {
 
             while let Some(m) = moves.get_next() {
                 let p2 = pos.next_pos_move(m);
-                let score = -self.negamax(p2,-beta,-alpha);
+                let score = -self.negamax(p2, -beta, -alpha);
 
-                if score >= beta { return score }
-                if score > alpha { alpha = score }
+                if score >= beta {
+                    return score;
+                }
+                if score > alpha {
+                    alpha = score
+                }
             }
-            self.table.put(pos.key(), (alpha - Position::MIN_SCORE + 1) as u8);
+            self.table
+                .put(pos.key(), (alpha - Position::MIN_SCORE + 1) as u8);
             alpha
         }
     }
-    fn iterative_deepening(&mut self,pos: Position, mut min: isize,mut max: isize) -> isize {
+    fn iterative_deepening(&mut self, pos: Position, mut min: isize, mut max: isize) -> isize {
         while min < max {
             let med = match min + (max - min) / 2 {
-                med if med <= 0 && min/2 < med => min/2,
-                med if med >= 0 && max/2 > med => max/2,
-                med => med
+                med if med <= 0 && min / 2 < med => min / 2,
+                med if med >= 0 && max / 2 > med => max / 2,
+                med => med,
             };
-            let r = self.negamax(pos.clone(),med,med+1);
-            if r <= med { max = r } else { min = r };
+            let r = self.negamax(pos.clone(), med, med + 1);
+            if r <= med {
+                max = r
+            } else {
+                min = r
+            };
         }
         min
     }
@@ -86,14 +95,16 @@ impl Solver {
     pub fn solve(&mut self, pos: Position, weak: bool) -> isize {
         let (min, max) = if !weak {
             (
-                -((Position::WIDTH*Position::HEIGHT - pos.moves) as isize)/2,
-                ((Position::WIDTH*Position::HEIGHT+1 - pos.moves)/2) as isize,
+                -((Position::WIDTH * Position::HEIGHT - pos.moves) as isize) / 2,
+                ((Position::WIDTH * Position::HEIGHT + 1 - pos.moves) / 2) as isize,
             )
-        } else { (-1,1) };
-        if pos.has_winning_move() { 
-            ((Position::WIDTH*Position::HEIGHT + 1 - pos.moves) / 2) as isize
         } else {
-            self.iterative_deepening(pos,min,max)
+            (-1, 1)
+        };
+        if pos.has_winning_move() {
+            ((Position::WIDTH * Position::HEIGHT + 1 - pos.moves) / 2) as isize
+        } else {
+            self.iterative_deepening(pos, min, max)
         }
     }
 }

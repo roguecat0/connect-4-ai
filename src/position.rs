@@ -1,6 +1,5 @@
-
 use std::fmt;
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Position {
     pub moves: usize,
     current_position: u64,
@@ -8,15 +7,20 @@ pub struct Position {
 }
 impl fmt::Display for Position {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,"player: {}\nboard:\n{}",self.get_current_player(),self.mask)
+        write!(
+            f,
+            "player: {}\nboard:\n{}",
+            self.get_current_player(),
+            self.mask
+        )
     }
 }
 
 impl Position {
     pub const HEIGHT: usize = 6;
     pub const WIDTH: usize = 7;
-    pub const MIN_SCORE: isize = -((Self::WIDTH*Self::HEIGHT) as isize) / 2 + 3;
-    pub const MAX_SCORE: isize = ((Self::WIDTH*Self::HEIGHT) as isize + 1) / 2 - 3;
+    pub const MIN_SCORE: isize = -((Self::WIDTH * Self::HEIGHT) as isize) / 2 + 3;
+    pub const MAX_SCORE: isize = ((Self::WIDTH * Self::HEIGHT) as isize + 1) / 2 - 3;
 
     pub fn new() -> Self {
         Self {
@@ -28,15 +32,14 @@ impl Position {
     pub fn parse(code: &str) -> Self {
         code.chars()
             .flat_map(|c| c.to_digit(10).map(|d| d - 1))
-            .fold(Self::new(), |acc, d|  acc.next_pos(d as usize))
+            .fold(Self::new(), |acc, d| acc.next_pos(d as usize))
     }
     pub fn parse_safe(code: &str) -> Option<Self> {
-        code.chars().try_fold(Self::new(), |acc, c| {
-            match c.to_digit(10) {
+        code.chars()
+            .try_fold(Self::new(), |acc, c| match c.to_digit(10) {
                 Some(n) => Some(acc.next_pos(n as usize)),
                 None => None,
-            }
-        })
+            })
     }
     pub fn key(&self) -> u64 {
         self.current_position + self.mask
@@ -49,10 +52,9 @@ impl Position {
 
         match forced_moves {
             n if n == 0 => possible_mask & !(opponent_win >> 1),
-            n if n & ( n - 1 ) > 0 => 0,
+            n if n & (n - 1) > 0 => 0,
             _ => forced_moves & !(opponent_win >> 1),
         }
-
     }
 
     fn can_play(&self, col: usize) -> bool {
@@ -83,16 +85,13 @@ impl Position {
     }
     // check only after winning move is checked
     pub fn is_draw(&self) -> bool {
-        self.moves == Self::WIDTH*Self::HEIGHT - 2
+        self.moves == Self::WIDTH * Self::HEIGHT - 2
     }
     pub fn calc_score(&self) -> isize {
-        ((Self::WIDTH*Self::HEIGHT) as isize - self.moves as isize)/2
+        ((Self::WIDTH * Self::HEIGHT) as isize - self.moves as isize) / 2
     }
     pub fn is_winning_move(&self, col: usize) -> bool {
-        self.winning_position() 
-        & self.possible() 
-        & Self::column_mask(col)
-        != 0
+        self.winning_position() & self.possible() & Self::column_mask(col) != 0
     }
     fn possible(&self) -> u64 {
         (self.mask + Self::BOTTOM_MASK) & Self::BOARD_MASK
@@ -106,45 +105,44 @@ impl Position {
     pub fn move_score(&self, m: u64) -> usize {
         Self::pop_count(
             Self::compute_winning_position(self.current_position | m, self.mask),
-            0
+            0,
         )
     }
     pub fn pop_count(m: u64, c: usize) -> usize {
         match m {
             0 => c,
-            _ => Self::pop_count(m & (m - 1), c + 1)
+            _ => Self::pop_count(m & (m - 1), c + 1),
         }
     }
 
     fn compute_winning_position(position: u64, mask: u64) -> u64 {
-
         // vertical
         let mut r = (position << 1) & (position << 2) & (position << 3);
 
         // horizontal
-        let mut p = (position << (Self::HEIGHT + 1)) & (position << 2*(Self::HEIGHT + 1));
-        r |= p & (position << 3*(Self::HEIGHT+1));
-        r |= p & (position >> (Self::HEIGHT+1));
-        p = (position >> (Self::HEIGHT+1)) & (position >> 2*(Self::HEIGHT+1));
-        r |= p & (position << (Self::HEIGHT+1));
-        r |= p & (position >> 3*(Self::HEIGHT+1));
+        let mut p = (position << (Self::HEIGHT + 1)) & (position << 2 * (Self::HEIGHT + 1));
+        r |= p & (position << 3 * (Self::HEIGHT + 1));
+        r |= p & (position >> (Self::HEIGHT + 1));
+        p = (position >> (Self::HEIGHT + 1)) & (position >> 2 * (Self::HEIGHT + 1));
+        r |= p & (position << (Self::HEIGHT + 1));
+        r |= p & (position >> 3 * (Self::HEIGHT + 1));
 
         //diagonal 1
-        p = (position << Self::HEIGHT) & (position << 2*Self::HEIGHT);
-        r |= p & (position << 3*Self::HEIGHT);
+        p = (position << Self::HEIGHT) & (position << 2 * Self::HEIGHT);
+        r |= p & (position << 3 * Self::HEIGHT);
         r |= p & (position >> Self::HEIGHT);
-        p = (position >> Self::HEIGHT) & (position >> 2*Self::HEIGHT);
+        p = (position >> Self::HEIGHT) & (position >> 2 * Self::HEIGHT);
         r |= p & (position << Self::HEIGHT);
-        r |= p & (position >> 3*Self::HEIGHT);
+        r |= p & (position >> 3 * Self::HEIGHT);
 
         //diagonal 2
-        p = (position << (Self::HEIGHT+2)) & (position << 2*(Self::HEIGHT+2));
-        r |= p & (position << 3*(Self::HEIGHT+2));
-        r |= p & (position >> (Self::HEIGHT+2));
-        p = (position >> (Self::HEIGHT+2)) & (position >> 2*(Self::HEIGHT+2));
-        r |= p & (position << (Self::HEIGHT+2));
-        r |= p & (position >> 3*(Self::HEIGHT+2));
-        
+        p = (position << (Self::HEIGHT + 2)) & (position << 2 * (Self::HEIGHT + 2));
+        r |= p & (position << 3 * (Self::HEIGHT + 2));
+        r |= p & (position >> (Self::HEIGHT + 2));
+        p = (position >> (Self::HEIGHT + 2)) & (position >> 2 * (Self::HEIGHT + 2));
+        r |= p & (position << (Self::HEIGHT + 2));
+        r |= p & (position >> 3 * (Self::HEIGHT + 2));
+
         r & (Self::BOARD_MASK ^ mask)
     }
     // static bitmaps
@@ -153,7 +151,7 @@ impl Position {
 
     // mask functions
     fn top_mask(col: usize) -> u64 {
-        1_u64 << ((Self::HEIGHT - 1) + col*(Self::HEIGHT+1))
+        1_u64 << ((Self::HEIGHT - 1) + col * (Self::HEIGHT + 1))
     }
     fn bottom_mask(col: usize) -> u64 {
         1_u64 << col * (Self::HEIGHT + 1)
@@ -167,90 +165,21 @@ impl Position {
     const fn bottom(height: u64, width: u64) -> u64 {
         match width {
             0 => 0,
-            _ => Self::bottom(width-1,height) | 1_u64 << (width-1)*(height+1)
+            _ => Self::bottom(width - 1, height) | 1_u64 << (width - 1) * (height + 1),
         }
     }
 }
 
-#[derive(Debug)]
-pub struct TranspositionTable {
-    table: Vec<Entry>,
-    accessed: u64,
-}
-
-impl TranspositionTable {
-    const SIZE: usize = 8388593; //8388593 == 64MB
-
-    pub fn new() -> Self {
-        Self {
-            table: vec![Entry::empty();Self::SIZE],
-            accessed: 0
-        }
-    }
-    fn index(key: u64) -> usize {
-        (key % Self::SIZE as u64) as usize
-    }
-
-    pub fn put(&mut self, key: u64, val: u8) {
-        assert!(key < (1_u64 << 56));
-        let i = Self::index(key);
-        self.table[i] = Entry::create(key,val);
-        self.accessed += 1;
-    }
-
-    pub fn get(&self, key: u64) -> u8 {
-        assert!(key < (1_u64 << 56));
-        let i = Self::index(key);
-        if key == self.table[i].key() {
-            self.table[i].value()
-        } else {
-            0
-        }
-    }
-    pub fn reset(&mut self) {
-        self.accessed = 0;
-        self.table.iter_mut().for_each(|m| *m = Entry::new());
-    }
-}
-
-#[derive(Copy,Clone,Debug)]
-pub struct Entry {
-    key_val: u64
-}
-impl Entry {
-    pub fn create(key: u64, val: u8) -> Self {
-        let key_val = (key << 8) | val as u64;
-        Self { key_val }
-    }
-    pub fn new() -> Self {Self::empty()}
-    pub fn empty() -> Self {
-        Self {
-            key_val: 0
-        }
-    }
-    pub fn key(&self) -> u64 {
-        self.key_val >> 8
-    }
-    pub fn value(&self) -> u8 {
-        (self.key_val & u8::MAX as u64) as u8
-    }
-}
-
-impl fmt::Display for Entry {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f,"( key={}, val={}, key_val={:b} )",self.key(),self.value(), self.key_val)
-    }
-}
 pub struct MoveSorter {
     size: usize,
-    entries: [SortEntry;Position::WIDTH]
+    entries: [SortEntry; Position::WIDTH],
 }
 
 impl MoveSorter {
     pub fn new() -> Self {
         Self {
             size: 0,
-            entries: [SortEntry::new(); Position::WIDTH]
+            entries: [SortEntry::new(); Position::WIDTH],
         }
     }
     pub fn add(&mut self, m: u64, score: usize) {
@@ -269,7 +198,6 @@ impl MoveSorter {
         self.entries[p].m = m;
         self.entries[p].score = score;
         self.size += 1;
-
     }
     pub fn get_next(&mut self) -> Option<u64> {
         match self.size {
@@ -285,13 +213,13 @@ impl MoveSorter {
     }
 }
 
-#[derive(Copy,Clone,Debug)]
+#[derive(Copy, Clone, Debug)]
 struct SortEntry {
     m: u64,
     score: usize,
 }
 impl SortEntry {
     fn new() -> Self {
-        Self {m: 0, score: 0}
+        Self { m: 0, score: 0 }
     }
 }

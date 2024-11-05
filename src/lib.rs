@@ -1,10 +1,11 @@
-pub use position::Position;
 pub use position::MoveSorter;
+pub use position::Position;
+pub use transposition_table::{NaiveTranspositionTable, TranspositionTable};
 
-pub mod solver;
 pub mod bencher;
 pub mod position;
-
+pub mod solver;
+pub mod transposition_table;
 
 #[cfg(test)]
 mod tests {
@@ -33,16 +34,16 @@ mod tests {
         let pos = Position::parse("52753311433677442422121");
         println!("{pos}");
         // println!("winning move: {}, moves: {}, score: {}"
-            // ,pos.has_winning_move(), pos.moves, pos.calc_score());
-        assert_eq!(8 ,solver.solve(pos,false));
+        // ,pos.has_winning_move(), pos.moves, pos.calc_score());
+        assert_eq!(8, solver.solve(pos, false));
 
         let pos = Position::parse("1233722555341451114725221333");
         println!("{pos}");
-        assert_eq!(-1 ,solver.solve(pos,false));
+        assert_eq!(-1, solver.solve(pos, false));
 
         let pos = Position::parse("2737772244262123677516643354");
         println!("{pos}");
-        assert_eq!(0 ,solver.solve(pos,false));
+        assert_eq!(0, solver.solve(pos, false));
     }
     #[test]
     fn test_solver_iterative_deepening() {
@@ -52,9 +53,9 @@ mod tests {
 
     #[test]
     fn test_pop_count() {
-        let count = Position::pop_count(4,0);
-        assert_eq!(1,count);
-        let count = Position::pop_count(3,0);
-        assert_eq!(2,count);
+        let count = Position::pop_count(4, 0);
+        assert_eq!(1, count);
+        let count = Position::pop_count(3, 0);
+        assert_eq!(2, count);
     }
 }
