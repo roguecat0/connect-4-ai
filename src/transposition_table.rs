@@ -1,3 +1,4 @@
+use super::*;
 use std::fmt;
 pub trait TranspositionTable {
     fn put(&mut self, key: u64, val: u8);
@@ -78,5 +79,39 @@ impl fmt::Display for Entry {
             self.value(),
             self.key_val
         )
+    }
+}
+pub struct OptimizedTranspoisitionTable {
+    keys: Vec<u32>,
+    values: Vec<u8>,
+}
+
+impl TranspositionTable for OptimizedTranspoisitionTable {
+    fn put(&mut self, key: u64, val: u8) {
+        let i = Self::index(key);
+        self.keys[i] = key as u32;
+        self.values[i] = val;
+    }
+    fn get(&self, key: u64) -> u8 {
+        assert!(key < (1_u64 << 56));
+        let i = Self::index(key);
+        if key as u32 == self.keys[i] {
+            self.values[i]
+        } else {
+            0
+        }
+    }
+    fn reset(&mut self) {}
+}
+impl OptimizedTranspoisitionTable {
+    const SIZE: usize = (1 << 23) + 9;
+    pub fn new() -> Self {
+        Self {
+            keys: vec![0; Self::SIZE],
+            values: vec![0; Self::SIZE],
+        }
+    }
+    fn index(key: u64) -> usize {
+        (key % Self::SIZE as u64) as usize
     }
 }

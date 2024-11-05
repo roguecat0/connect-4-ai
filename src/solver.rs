@@ -1,6 +1,7 @@
-use super::*;
 use crate::position::{MoveSorter, Position};
-use crate::{NaiveTranspositionTable, TranspositionTable};
+use crate::transposition_table::{
+    NaiveTranspositionTable, OptimizedTranspoisitionTable, TranspositionTable,
+};
 
 pub struct Solver {
     pub node_count: u64,
@@ -13,7 +14,7 @@ impl Solver {
         Self {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
-            table: Box::new(NaiveTranspositionTable::new()),
+            table: Box::new(OptimizedTranspoisitionTable::new()),
         }
     }
     pub fn reset(&mut self) {

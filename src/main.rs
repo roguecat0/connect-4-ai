@@ -11,5 +11,5 @@ fn main() {
     //     println!("move: {n}");
     // }
 
-    bencher::run("datasets/Test_L3_R1", false);
+    bencher::run("datasets/Test_L1_R2", false);
 }
