@@ -272,14 +272,11 @@ impl OpeningBook {
             .take(6)
             .bytes()
             .flatten()
-            .inspect(|b| println!("{b:?}"))
             .collect::<Vec<u8>>()[2];
         let mut keys = vec![0; BookTranspositionTable::SIZE];
         file.read_exact(&mut keys)?;
         let mut values = vec![0; BookTranspositionTable::SIZE];
         file.read_exact(&mut values)?;
-        let bytes = file.borrow_mut().take(4).bytes().count();
-        println!("num bytes: {bytes}, depth: {depth}");
         Ok(Self {
             table: BookTranspositionTable::create(keys, values),
             depth: depth as usize,

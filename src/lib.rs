@@ -1,6 +1,6 @@
-pub use position::MoveSorter;
-pub use position::Position;
-pub use transposition_table::{NaiveTranspositionTable, TranspositionTable};
+pub use position::{OpeningBook, Position};
+pub use solver::Solver;
+pub use transposition_table::TranspositionTable;
 
 pub mod bencher;
 pub mod position;
