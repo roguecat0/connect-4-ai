@@ -4,8 +4,8 @@ use solver::Solver;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::Error as IOError;
+use std::rc::Rc;
 use std::time::{Duration, Instant};
-use transposition_table::BookTranspositionTable;
 
 fn read_file_to_string(file_path: &str) -> Result<String, IOError> {
     let mut s: String = String::new();
@@ -15,8 +15,8 @@ fn read_file_to_string(file_path: &str) -> Result<String, IOError> {
 }
 
 pub fn run(file_path: &str, weak: bool) {
-    let book = OpeningBook::load("7x6.book").expect("book to load");
-    let mut solver = Solver::with_opening_book(book);
+    let book = Rc::new(OpeningBook::load("7x6.book").expect("book to load"));
+    let mut solver = Solver::with_opening_book(Rc::clone(&book));
 
     if let Ok(s) = read_file_to_string(file_path) {
         let num_lines = s.lines().count();

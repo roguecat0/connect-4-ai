@@ -56,10 +56,6 @@ impl Position {
         for i in (0..Self::WIDTH).rev() {
             self.partial_key3(&mut key_reverse, i)
         }
-        // println!(
-        //     "mask: {}, curr: {}, forward: {key_forward}, reverse: {key_reverse}",
-        //     self.mask, self.current_position
-        // );
         std::cmp::min(key_forward, key_reverse) / 3
     }
     pub fn partial_key3(&self, key: &mut u64, col: usize) {
@@ -88,7 +84,7 @@ impl Position {
         }
     }
 
-    fn can_play(&self, col: usize) -> bool {
+    pub fn can_play(&self, col: usize) -> bool {
         self.mask & Self::top_mask(col) == 0
     }
 

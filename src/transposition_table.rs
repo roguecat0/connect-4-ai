@@ -150,6 +150,7 @@ impl BookTranspositionTable {
         Self { keys, values }
     }
     pub fn get(&self, key: u64) -> u8 {
+        assert!(key < (1_u64 << 44));
         let i = Self::index(key);
         if key as u8 == self.keys[i] {
             self.values[i]

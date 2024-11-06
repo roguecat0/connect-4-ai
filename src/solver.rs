@@ -1,13 +1,13 @@
+use std::rc::Rc;
+
 use crate::position::{MoveSorter, OpeningBook, Position};
-use crate::transposition_table::{
-    NaiveTranspositionTable, OptimizedTranspoisitionTable, TranspositionTable,
-};
+use crate::transposition_table::{OptimizedTranspoisitionTable, TranspositionTable};
 
 pub struct Solver {
     pub node_count: u64,
     column_order: [usize; Position::WIDTH],
     table: Box<dyn TranspositionTable>,
-    book: OpeningBook,
+    book: Rc<OpeningBook>,
 }
 
 impl Solver {
@@ -16,10 +16,10 @@ impl Solver {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
             table: Box::new(OptimizedTranspoisitionTable::new()),
-            book: OpeningBook::new(),
+            book: Rc::new(OpeningBook::new()),
         }
     }
-    pub fn with_opening_book(book: OpeningBook) -> Self {
+    pub fn with_opening_book(book: Rc<OpeningBook>) -> Self {
         Self {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
@@ -55,7 +55,6 @@ impl Solver {
         } else if alpha >= beta {
             beta
         } else if let Some(n) = self.book.get(&pos) {
-            // println!("got from book");
             (n as isize) + Position::MIN_SCORE - 1
         } else {
             let mut moves = MoveSorter::new();
@@ -67,11 +66,6 @@ impl Solver {
                     n => Some(n),
                 })
                 .for_each(|m| moves.add(m, pos.move_score(m)));
-
-            // for p2 in self.column_order
-            //         .into_iter()
-            //         .filter(|&c| next & Position::column_mask(c) != 0)
-            //         .map(|c| pos.next_pos(c)) {
 
             while let Some(m) = moves.get_next() {
                 let p2 = pos.next_pos_move(m);
@@ -120,5 +114,18 @@ impl Solver {
         } else {
             self.iterative_deepening(pos, min, max)
         }
+    }
+    pub fn analyse(&mut self, pos: &Position, weak: bool) -> Vec<Option<isize>> {
+        (0..Position::WIDTH)
+            .map(|col| {
+                if !pos.can_play(col) {
+                    None
+                } else if pos.is_winning_move(col) {
+                    Some(((Position::WIDTH * Position::HEIGHT + 1 - pos.moves) / 2) as isize)
+                } else {
+                    Some(-self.solve(&pos.next_pos(col), weak))
+                }
+            })
+            .collect()
     }
 }
