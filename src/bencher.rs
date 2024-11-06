@@ -4,7 +4,7 @@ use solver::Solver;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::Error as IOError;
-use std::rc::Rc;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 fn read_file_to_string(file_path: &str) -> Result<String, IOError> {
@@ -15,8 +15,8 @@ fn read_file_to_string(file_path: &str) -> Result<String, IOError> {
 }
 
 pub fn run(file_path: &str, weak: bool) {
-    let book = Rc::new(OpeningBook::load("7x6.book").expect("book to load"));
-    let mut solver = Solver::with_opening_book(Rc::clone(&book));
+    let book = Arc::new(OpeningBook::load("7x6.book").expect("book to load"));
+    let mut solver = Solver::with_opening_book(Arc::clone(&book));
 
     if let Ok(s) = read_file_to_string(file_path) {
         let num_lines = s.lines().count();

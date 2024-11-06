@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::position::{MoveSorter, OpeningBook, Position};
 use crate::transposition_table::{OptimizedTranspoisitionTable, TranspositionTable};
@@ -7,7 +7,7 @@ pub struct Solver {
     pub node_count: u64,
     column_order: [usize; Position::WIDTH],
     table: Box<dyn TranspositionTable>,
-    book: Rc<OpeningBook>,
+    book: Arc<OpeningBook>,
 }
 
 impl Solver {
@@ -16,10 +16,10 @@ impl Solver {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
             table: Box::new(OptimizedTranspoisitionTable::new()),
-            book: Rc::new(OpeningBook::new()),
+            book: Arc::new(OpeningBook::new()),
         }
     }
-    pub fn with_opening_book(book: Rc<OpeningBook>) -> Self {
+    pub fn with_opening_book(book: Arc<OpeningBook>) -> Self {
         Self {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
