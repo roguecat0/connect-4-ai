@@ -1,4 +1,6 @@
+use std::borrow::BorrowMut;
 use std::fmt;
+use std::io::Read;
 #[derive(Clone, Debug)]
 pub struct Position {
     pub moves: usize,
@@ -37,12 +39,41 @@ impl Position {
     pub fn parse_safe(code: &str) -> Option<Self> {
         code.chars()
             .try_fold(Self::new(), |acc, c| match c.to_digit(10) {
+                Some(n) if n < 7 => None,
                 Some(n) => Some(acc.next_pos(n as usize)),
                 None => None,
             })
     }
     pub fn key(&self) -> u64 {
         self.current_position + self.mask
+    }
+    pub fn key3(&self) -> u64 {
+        let mut key_forward = 0;
+        for i in 0..Self::WIDTH {
+            self.partial_key3(&mut key_forward, i)
+        }
+        let mut key_reverse = 0;
+        for i in (0..Self::WIDTH).rev() {
+            self.partial_key3(&mut key_reverse, i)
+        }
+        // println!(
+        //     "mask: {}, curr: {}, forward: {key_forward}, reverse: {key_reverse}",
+        //     self.mask, self.current_position
+        // );
+        std::cmp::min(key_forward, key_reverse) / 3
+    }
+    pub fn partial_key3(&self, key: &mut u64, col: usize) {
+        let mut p = 1_u64 << (col * (Self::HEIGHT + 1));
+        while p & self.mask != 0 {
+            *key *= 3;
+            if p & self.current_position != 0 {
+                *key += 1
+            } else {
+                *key += 2
+            }
+            p <<= 1;
+        }
+        *key *= 3;
     }
     pub fn possible_non_loosing_moves(&self) -> u64 {
         assert!(!self.has_winning_move());
@@ -221,5 +252,51 @@ struct SortEntry {
 impl SortEntry {
     fn new() -> Self {
         Self { m: 0, score: 0 }
+    }
+}
+
+use crate::transposition_table::BookTranspositionTable;
+use std::error::Error;
+use std::fs::File;
+pub struct OpeningBook {
+    pub table: BookTranspositionTable,
+    depth: usize,
+}
+impl OpeningBook {
+    pub fn new() -> Self {
+        Self {
+            table: BookTranspositionTable::new(),
+            depth: 0,
+        }
+    }
+    pub fn load(file_path: &str) -> Result<Self, Box<dyn Error>> {
+        let mut file: File = File::open(file_path)?;
+        let depth = file
+            .borrow_mut()
+            .take(6)
+            .bytes()
+            .flatten()
+            .inspect(|b| println!("{b:?}"))
+            .collect::<Vec<u8>>()[2];
+        let mut keys = vec![0; BookTranspositionTable::SIZE];
+        file.read_exact(&mut keys)?;
+        let mut values = vec![0; BookTranspositionTable::SIZE];
+        file.read_exact(&mut values)?;
+        let bytes = file.borrow_mut().take(4).bytes().count();
+        println!("num bytes: {bytes}, depth: {depth}");
+        Ok(Self {
+            table: BookTranspositionTable::create(keys, values),
+            depth: depth as usize,
+        })
+    }
+    pub fn get(&self, pos: &Position) -> Option<u8> {
+        if pos.moves > self.depth {
+            None
+        } else {
+            match self.table.get(pos.key3()) {
+                0 => None,
+                n => Some(n),
+            }
+        }
     }
 }

@@ -1,4 +1,4 @@
-use crate::position::{MoveSorter, Position};
+use crate::position::{MoveSorter, OpeningBook, Position};
 use crate::transposition_table::{
     NaiveTranspositionTable, OptimizedTranspoisitionTable, TranspositionTable,
 };
@@ -7,6 +7,7 @@ pub struct Solver {
     pub node_count: u64,
     column_order: [usize; Position::WIDTH],
     table: Box<dyn TranspositionTable>,
+    book: OpeningBook,
 }
 
 impl Solver {
@@ -15,6 +16,15 @@ impl Solver {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
             table: Box::new(OptimizedTranspoisitionTable::new()),
+            book: OpeningBook::new(),
+        }
+    }
+    pub fn with_opening_book(book: OpeningBook) -> Self {
+        Self {
+            node_count: 0,
+            column_order: [3, 2, 4, 1, 5, 0, 6],
+            table: Box::new(OptimizedTranspoisitionTable::new()),
+            book,
         }
     }
     pub fn reset(&mut self) {
@@ -44,6 +54,9 @@ impl Solver {
             0
         } else if alpha >= beta {
             beta
+        } else if let Some(n) = self.book.get(&pos) {
+            // println!("got from book");
+            (n as isize) + Position::MIN_SCORE - 1
         } else {
             let mut moves = MoveSorter::new();
             self.column_order
@@ -76,7 +89,7 @@ impl Solver {
             alpha
         }
     }
-    fn iterative_deepening(&mut self, pos: Position, mut min: isize, mut max: isize) -> isize {
+    fn iterative_deepening(&mut self, pos: &Position, mut min: isize, mut max: isize) -> isize {
         while min < max {
             let med = match min + (max - min) / 2 {
                 med if med <= 0 && min / 2 < med => min / 2,
@@ -93,7 +106,7 @@ impl Solver {
         min
     }
 
-    pub fn solve(&mut self, pos: Position, weak: bool) -> isize {
+    pub fn solve(&mut self, pos: &Position, weak: bool) -> isize {
         let (min, max) = if !weak {
             (
                 -((Position::WIDTH * Position::HEIGHT - pos.moves) as isize) / 2,
