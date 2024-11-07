@@ -7,7 +7,7 @@ use std::sync::Arc;
 fn main() {
     // bencher::run("datasets/Test_L1_R2", false);
     let book = Arc::new(OpeningBook::load("7x6.book").expect("loaded"));
-    let mut solver = Solver::with_opening_book(book);
+    let mut solver = Solver::with_opening_book(&book);
     let moves = "57";
     let weak = false;
     let pos = Position::parse(moves);

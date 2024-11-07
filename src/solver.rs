@@ -3,46 +3,46 @@ use std::sync::Arc;
 use crate::position::{MoveSorter, OpeningBook, Position};
 use crate::transposition_table::{OptimizedTranspoisitionTable, TranspositionTable};
 
-pub struct Solver<T: TranspositionTable> {
+pub struct Solver<'a, T: TranspositionTable> {
     pub node_count: u64,
     column_order: [usize; Position::WIDTH],
     table: T,
-    book: Arc<OpeningBook>,
+    book: Option<&'a OpeningBook>,
 }
-impl Solver<OptimizedTranspoisitionTable> {
+impl<'a> Solver<'a, OptimizedTranspoisitionTable> {
     pub fn new() -> Self {
         Self {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
             table: OptimizedTranspoisitionTable::new(),
-            book: Arc::new(OpeningBook::new()),
+            book: None,
         }
     }
-    pub fn with_opening_book(book: Arc<OpeningBook>) -> Self {
+    pub fn with_opening_book(book: &'a OpeningBook) -> Self {
         Self {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
             table: OptimizedTranspoisitionTable::new(),
-            book,
+            book: Some(book),
         }
     }
 }
 
-impl<T: TranspositionTable> Solver<T> {
+impl<'a, T: TranspositionTable> Solver<'a, T> {
     pub fn custom_table(table: T) -> Self {
         Self {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
             table,
-            book: Arc::new(OpeningBook::new()),
+            book: None,
         }
     }
-    pub fn custom_with_opening_book(table: T, book: Arc<OpeningBook>) -> Self {
+    pub fn custom_with_opening_book(table: T, book: &'a OpeningBook) -> Self {
         Self {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
             table,
-            book,
+            book: Some(book),
         }
     }
     pub fn reset(&mut self) {
@@ -72,7 +72,7 @@ impl<T: TranspositionTable> Solver<T> {
             0
         } else if alpha >= beta {
             beta
-        } else if let Some(n) = self.book.get(&pos) {
+        } else if let Some(n) = self.book.and_then(|b| b.get(&pos)) {
             (n as isize) + Position::MIN_SCORE - 1
         } else {
             let mut moves = MoveSorter::new();
