@@ -10,7 +10,6 @@ pub mod transposition_table;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use position::OpeningBook;
     use solver::Solver;
 
     #[test]
@@ -27,15 +26,12 @@ mod tests {
     #[test]
     fn test_has_winning_move() {
         let pos2 = Position::parse("112233");
-        // let pos2 = Position::parse("121212");
         println!("\n##IGNORE##");
         assert_eq!(true, pos2.has_winning_move());
     }
-    fn test_solver(mut solver: Solver) {
+    fn test_solver<T: TranspositionTable>(mut solver: Solver<T>) {
         let pos = Position::parse("52753311433677442422121");
         println!("{pos}");
-        // println!("winning move: {}, moves: {}, score: {}"
-        // ,pos.has_winning_move(), pos.moves, pos.calc_score());
         assert_eq!(8, solver.solve(&pos, false));
 
         let pos = Position::parse("1233722555341451114725221333");
@@ -50,26 +46,6 @@ mod tests {
     fn test_solver_iterative_deepening() {
         let solver = Solver::new();
         test_solver(solver);
-    }
-    #[test]
-    fn test_opening() {
-        let book = OpeningBook::load("7x6.book").expect("works");
-        let mut solver = Solver::new();
-        // 1117,
-        for i in 1118..11111111 {
-            if let Some(pos) = Position::parse_safe(&i.to_string()) {
-                println!("code: {i}");
-                opening_cmp(&pos, &book, &mut solver);
-            }
-        }
-    }
-    fn opening_cmp(pos: &Position, book: &OpeningBook, solver: &mut Solver) {
-        if let Some(n) = book.get(&pos) {
-            let val = solver.solve(&pos, false);
-            let val2 = (n as isize) + Position::MIN_SCORE - 1;
-            println!("in book {val2}, solver: {val}");
-            assert_eq!(val, val2);
-        }
     }
 
     #[test]

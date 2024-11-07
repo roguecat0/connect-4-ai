@@ -3,19 +3,18 @@ use std::sync::Arc;
 use crate::position::{MoveSorter, OpeningBook, Position};
 use crate::transposition_table::{OptimizedTranspoisitionTable, TranspositionTable};
 
-pub struct Solver {
+pub struct Solver<T: TranspositionTable> {
     pub node_count: u64,
     column_order: [usize; Position::WIDTH],
-    table: Box<dyn TranspositionTable>,
+    table: T,
     book: Arc<OpeningBook>,
 }
-
-impl Solver {
+impl Solver<OptimizedTranspoisitionTable> {
     pub fn new() -> Self {
         Self {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
-            table: Box::new(OptimizedTranspoisitionTable::new()),
+            table: OptimizedTranspoisitionTable::new(),
             book: Arc::new(OpeningBook::new()),
         }
     }
@@ -23,7 +22,26 @@ impl Solver {
         Self {
             node_count: 0,
             column_order: [3, 2, 4, 1, 5, 0, 6],
-            table: Box::new(OptimizedTranspoisitionTable::new()),
+            table: OptimizedTranspoisitionTable::new(),
+            book,
+        }
+    }
+}
+
+impl<T: TranspositionTable> Solver<T> {
+    pub fn custom_table(table: T) -> Self {
+        Self {
+            node_count: 0,
+            column_order: [3, 2, 4, 1, 5, 0, 6],
+            table,
+            book: Arc::new(OpeningBook::new()),
+        }
+    }
+    pub fn custom_with_opening_book(table: T, book: Arc<OpeningBook>) -> Self {
+        Self {
+            node_count: 0,
+            column_order: [3, 2, 4, 1, 5, 0, 6],
+            table,
             book,
         }
     }
