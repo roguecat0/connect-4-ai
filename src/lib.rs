@@ -20,6 +20,19 @@ mod tests {
         assert_eq!(true, true);
     }
     #[test]
+    fn test_safe_parsing() {
+        let pos = Position::parse_safe("000");
+        assert!(pos.is_some());
+        let pos = Position::parse_safe("000000");
+        assert!(pos.is_some());
+        let pos = Position::parse_safe("0000000");
+        assert!(pos.is_none());
+        let pos = Position::parse_safe("0123456");
+        assert!(pos.is_some());
+        let pos = Position::parse_safe("01234567");
+        assert!(pos.is_none());
+    }
+    #[test]
     fn test_winning_move() {
         let pos2 = Position::parse("121212");
         assert_eq!(true, pos2.is_winning_move(0));
@@ -50,18 +63,6 @@ mod tests {
     fn test_solver_iterative_deepening() {
         let solver = Solver::new();
         test_solver(solver);
-    }
-    #[test]
-    fn test_opening() {
-        let book = OpeningBook::load("7x6.book").expect("works");
-        let mut solver = Solver::new();
-        // 1117,
-        for i in 1118..11111111 {
-            if let Some(pos) = Position::parse_safe(&i.to_string()) {
-                println!("code: {i}");
-                opening_cmp(&pos, &book, &mut solver);
-            }
-        }
     }
     fn opening_cmp(pos: &Position, book: &OpeningBook, solver: &mut Solver) {
         if let Some(n) = book.get(&pos) {

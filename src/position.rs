@@ -1,6 +1,7 @@
 use std::borrow::BorrowMut;
 use std::fmt;
 use std::io::Read;
+use std::ops::RangeBounds;
 #[derive(Clone, Debug)]
 pub struct Position {
     pub moves: usize,
@@ -31,18 +32,17 @@ impl Position {
             mask: 0,
         }
     }
+    // first column == 1
     pub fn parse(code: &str) -> Self {
         code.chars()
             .flat_map(|c| c.to_digit(10).map(|d| d - 1))
             .fold(Self::new(), |acc, d| acc.next_pos(d as usize))
     }
+    // first column == 0
     pub fn parse_safe(code: &str) -> Option<Self> {
-        code.chars()
-            .try_fold(Self::new(), |acc, c| match c.to_digit(10) {
-                Some(n) if n < 7 => None,
-                Some(n) => Some(acc.next_pos(n as usize)),
-                None => None,
-            })
+        code.chars().try_fold(Self::new(), |acc, c| {
+            c.to_digit(10).and_then(|d| acc.next_pos_safe(d as usize))
+        })
     }
     pub fn key(&self) -> u64 {
         self.current_position + self.mask
@@ -91,6 +91,15 @@ impl Position {
     pub fn next_pos(&self, col: usize) -> Self {
         let m = self.mask + Self::bottom_mask(col) & Self::column_mask(col);
         self.next_pos_move(m)
+    }
+
+    pub fn next_pos_safe(&self, col: usize) -> Option<Self> {
+        if self.can_play(col) && col < Self::WIDTH {
+            let m = self.mask + Self::bottom_mask(col) & Self::column_mask(col);
+            Some(self.next_pos_move(m))
+        } else {
+            None
+        }
     }
 
     pub fn next_pos_move(&self, m: u64) -> Self {
